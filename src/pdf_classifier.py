@@ -295,8 +295,8 @@ class PdfClassifier:
 
             ## Save metadata
             metadata_path = os.path.join(page_dir, f"page_{i + 1:04d}.json")
-            with open(metadata_path, "w") as f:
-                json.dump(page_metadata, f, indent=2)
+            with open(metadata_path, "w", encoding="utf-8") as f:
+                json.dump(page_metadata, f, indent=2, ensure_ascii=False)
 
         return pages_metadata
     def _classify_page(self, page_metadata : dict) -> list:
@@ -474,7 +474,7 @@ class PdfClassifier:
             )
 
         ## Save page classifications
-        with open( os.path.join(self._output_dir, "classifications.json"), "w") as f:
-            json.dump(pages_classifications, f, indent=2, cls=NumpyJSONEncoder)
+        with open( os.path.join(self._output_dir, "classifications.json"), "w", encoding="utf-8") as f:
+            json.dump(pages_classifications, f, indent=2, cls=NumpyJSONEncoder, ensure_ascii=False)
 
         return pages_classifications

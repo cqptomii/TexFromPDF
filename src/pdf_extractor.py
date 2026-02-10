@@ -4,6 +4,7 @@ from time import time
 from src.pdf_classifier import PdfClassifier
 from src.config import MainConfig, ClassifierConfig
 from src.layout_block_processor import LayoutBlockProcessor
+from src.utils.numpy_encoder import NumpyJSONEncoder
 
 class PdfExtractor:
 
@@ -44,9 +45,9 @@ class PdfExtractor:
         ## Extract the layout blocks
         extracted_content = self._processor.process(classification_dict)
 
-        ## Save the extracted content to a json file
-        with open(os.path.join(self._config.output_dir, "extracted_content.json"), "w") as f:
-            json.dump(extracted_content, f, indent=2)
+        ## Save the extracted content to a JSON file
+        with open(os.path.join(self._config.output_dir, "extracted_content.json"), "w", encoding="utf-8") as f:
+            json.dump(extracted_content, f, indent=2, cls=NumpyJSONEncoder, ensure_ascii=False)
 
         ## Convert the extracted content to MD and HTML format and save them to a file
         if self._config.save_md:
@@ -62,10 +63,9 @@ class PdfExtractor:
 
 
 if __name__ == "__main__":
-
     extractor = PdfExtractor(
         pdf_path="D:/apprentissage/TexFromPDF/data/sample_pdfs/page_004.pdf",
         output_dir="D:/apprentissage/TexFromPDF/output"
     )
 
-    extracted_content = extractor.extract()
+    content = extractor.extract()

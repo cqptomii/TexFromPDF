@@ -1,8 +1,9 @@
 from time import time
-
-from processors import *
 import fitz, os, json
 from pathlib import Path
+from processors import *
+from src.utils.numpy_encoder import NumpyJSONEncoder
+
 class LayoutBlockProcessor:
 
     def __init__(self, pdf_path: Path,  output_dir : str = None):
@@ -28,12 +29,16 @@ class LayoutBlockProcessor:
 
         doc = fitz.open(self._process_pdf_path)
         for page, page_dict in zip(doc, document):
+            print("=" * 30)
+            print(f"Processing page {page_dict.get('page_number', -1)}")
+            print("=" * 30)
             page_number = page_dict.get("page_number", -1)
             predicted_blocks = page_dict.get("blocks", [])
 
             page_content = []
             ## Process each predicted block of the page
-            for block in predicted_blocks:
+            for i, block in enumerate(predicted_blocks):
+                print(f"Processing block  {i} :{block.get('class_name', '')}")
                 class_name = block.get("class_name", "").lower()
 
                 ## Determine the process to use within the block
@@ -48,14 +53,23 @@ class LayoutBlockProcessor:
                 else:
                     dict_generated = self._text_processor.process(page, page_number, block)
 
-                page_content.append(dict_generated)
+                print(f"Generated dictionary: {dict_generated}")
+
+                ## Convert Datamodel Class to Dictionary
+                if dict_generated:
+                    dict_generated = dict_generated.to_dict()
+
+                    page_content.append(dict_generated)
 
 
             doc_content.append(page_content)
 
+        print("=" * 30)
+        print("Generated content:", doc_content)
+        print("=" * 30)
         ## Save the processed document
-        with open(self._output_dir + "/extracted_content.json", "w") as f:
-            json.dump(doc_content, f, indent=2)
+        with open(self._output_dir + "/extracted_content.json", "w", encoding="utf-8") as f:
+            json.dump(doc_content, f, indent=2, cls=NumpyJSONEncoder, ensure_ascii=False)
 
 
         return doc_content
