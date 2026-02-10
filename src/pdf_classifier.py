@@ -1,8 +1,9 @@
 from typing import List, Dict, Any
 from ultralytics import YOLO
 from pathlib import Path
-from time import time
-import fitz, os, cv2, json, numpy as np
+import fitz, os, json, numpy as np
+
+from src.config.main_config import MainConfig
 from utils.numpy_encoder import NumpyJSONEncoder
 
 
@@ -64,12 +65,14 @@ def image_coverage_ratio(page):
     return total_image_area / page_area
 
 class PdfClassifier:
-    def __init__(self, model_name: str = "yolov12l-doclaynet.pt", device : str = "cpu", verbose: bool = False):
-        self._model_name = model_name
+    def __init__(self, config : MainConfig):
+
+        self._model_name = config.classifier_config.model_name
+        self._device = config.classifier_config.device
+
         self._model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models/layout_detection", self._model_name)
-        self._verbose = verbose
-        self._output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
-        self._device = device
+        self._verbose = config.verbose
+        self._output_dir = config.output_dir
         self._page_rotations = {}
 
 
@@ -428,8 +431,6 @@ class PdfClassifier:
         """
 
         doc = fitz.open(pdf_path)
-        self._output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), os.path.join("output",f"{pdf_path.stem}_{time():.02f}"))
-
         ## Correct page rotation
         for i,page in enumerate(doc):
             self._page_rotations[i] = self._correct_page_rotation(page)
@@ -477,7 +478,3 @@ class PdfClassifier:
             json.dump(pages_classifications, f, indent=2, cls=NumpyJSONEncoder)
 
         return pages_classifications
-
-if __name__ == "__main__":
-    pdf_classifier = PdfClassifier(verbose=True)
-    pdf_classifier.classify(Path("D:/apprentissage/TexFromPDF/data/sample_pdfs/page_004.pdf"))

@@ -5,7 +5,7 @@ import fitz, os, json
 from pathlib import Path
 class LayoutBlockProcessor:
 
-    def __init__(self, pdf_path: str,  output_dir : str = None):
+    def __init__(self, pdf_path: Path,  output_dir : str = None):
 
         self._text_processor = TextProcessor()
         self._table_processor = TableProcessor()
@@ -15,7 +15,7 @@ class LayoutBlockProcessor:
 
         self._process_pdf_path = pdf_path
         self._output_dir = output_dir if output_dir is not None else os.path.join(os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "output"), f"{Path(pdf_path).stem}_{time():.02f}")
+            os.path.dirname(os.path.dirname(__file__)), "output"), f"{self._process_pdf_path.stem}_{time():.02f}")
 
     def process(self, document : list[dict]):
         """
