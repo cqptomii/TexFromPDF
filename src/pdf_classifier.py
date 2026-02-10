@@ -2,7 +2,7 @@ from typing import List, Dict, Any
 from ultralytics import YOLO
 from pathlib import Path
 from time import time
-import fitz, os, json, cv2, numpy as np
+import fitz, os, cv2, json, numpy as np
 from utils.numpy_encoder import NumpyJSONEncoder
 
 
@@ -51,6 +51,17 @@ def transform_bbox_for_rotation(bbox, rotation, page_width, page_height):
 
     return bbox
 
+def image_coverage_ratio(page):
+    page_area = page.rect.width * page.rect.height
+    total_image_area = 0
+
+    for img in page.get_images(full=True):
+        xref = img[0]
+        rects = page.get_image_rects(xref)
+        for r in rects:
+            total_image_area += r.width * r.height
+
+    return total_image_area / page_area
 
 class PdfClassifier:
     def __init__(self, model_name: str = "yolov12l-doclaynet.pt", device : str = "cpu", verbose: bool = False):
@@ -70,6 +81,10 @@ class PdfClassifier:
         self._load_model()
     def _load_model(self):
         self._model = YOLO(self._model_path)
+
+    ##
+    ## Rotation Dectection
+    ##
     def _detect_page_orientation(self, page) -> int:
         """
             Detect the page orientation based on the text direction
@@ -199,6 +214,37 @@ class PdfClassifier:
                     f"Page {page.number + 1} rotated from {current_rotation}° to {new_rotation}° (applied {rotation_needed}°)")
 
         return rotation_needed
+
+    ##
+    ## Scanned Image detection
+    ##
+    def _is_scanned_image(self, page) -> bool:
+        """
+            Method that checks if a page is a scanned image
+            The image is considered scanned if:
+                - It contains text
+                - The image ratio is close to the page ratio
+                - there is noise in the image
+
+            Score >=5 : the page is a scanned image
+            else : the page is not a scanned image
+        :param page: (fitz.Page) Page to check if it's a scanned image
+        :param image_bbox: (dict) Bounding box of the image in the page
+        :return: (bool) True if the page is a scanned image, False otherwise
+        """
+        score = 0
+        ## Check if we can extract text
+        if len(page.get_text("text").strip()) < 50:
+            score += 3
+
+        ## Check the ratio of image in the page
+        if image_coverage_ratio(page) > 0.85:
+            score += 3
+
+        ## Check if there is noise in the image
+        ## TO IMPLEMENT IF NEEDED
+
+        return score >= 5
     def _page_rasterization(self, doc, dpi: int = 300, page_format = "png") -> List[dict]:
         """
             Méthod that rasterize a pdf page
@@ -238,8 +284,9 @@ class PdfClassifier:
                     "page_height": page.rect.height,
                     "page_rotation": self._page_rotations.get(i, 0),
                     "dpi": dpi,
-                    "scale": self._zoom
-                }
+                    "scale": self._zoom,
+                    "is_scanned": self._is_scanned_image(page)
+            }
 
             pages_metadata.append(page_metadata)
 
@@ -289,6 +336,11 @@ class PdfClassifier:
                     )
                 else:
                     pdf_bbox = pdf_bbox_rotated
+
+
+                ## In case of the detected class is an image, check if it's a scanned image
+                if class_name == "picture" and page_metadata.get("is_scanned", False):
+                    class_name = "image_scanned"
 
                 detection = {
                     "class_id": int(cls_id),
