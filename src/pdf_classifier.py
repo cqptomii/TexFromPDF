@@ -53,7 +53,7 @@ def transform_bbox_for_rotation(bbox, rotation, page_width, page_height):
 
 
 class PdfClassifier:
-    def __init__(self, model_name: str = "yolo26m-doclaynet.pt", device : str = "cpu", verbose: bool = False):
+    def __init__(self, model_name: str = "yolov12l-doclaynet.pt", device : str = "cpu", verbose: bool = False):
         self._model_name = model_name
         self._model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models/layout_detection", self._model_name)
         self._verbose = verbose
@@ -249,14 +249,14 @@ class PdfClassifier:
                 json.dump(page_metadata, f, indent=2)
 
         return pages_metadata
-    def _classify_page(self, page, page_metadata : dict) -> list:
+    def _classify_page(self, page_metadata : dict) -> list:
         results = self._model.predict(
             page_metadata.get("image_path", ""),
             device=self._device,
             verbose=self._verbose,
             conf=0.25,
             save=True,
-            save_dir=f"{self._output_dir}/predictions"
+            save_dir=f"{self._output_dir}/predictions/page_{page_metadata.get('page_number'):04d}"
         )
 
         detected_blocks = []
@@ -357,7 +357,7 @@ class PdfClassifier:
             )
 
         ## Save annotated PDF
-        annotated_pdf_path = os.path.join(self._output_dir, f"predictions/debug")
+        annotated_pdf_path = os.path.join(self._output_dir, f"predictions/page_{prediction_dict.get("page_number", 0):04d}/debug")
         os.makedirs(annotated_pdf_path, exist_ok=True)
 
         print(f"Saving annotated PDF to {annotated_pdf_path}")
@@ -406,7 +406,7 @@ class PdfClassifier:
                     "height": page_metadata.get("page_height")
                 },
                 "page_rotation": page_metadata.get("page_rotation"),
-                "blocks": self._classify_page(page, page_metadata),
+                "blocks": self._classify_page(page_metadata),
             }
 
             ## Classify page
@@ -425,3 +425,7 @@ class PdfClassifier:
             json.dump(pages_classifications, f, indent=2, cls=NumpyJSONEncoder)
 
         return pages_classifications
+
+if __name__ == "__main__":
+    pdf_classifier = PdfClassifier(verbose=True)
+    pdf_classifier.classify(Path("D:/apprentissage/TexFromPDF/data/sample_pdfs/page_004.pdf"))
