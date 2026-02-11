@@ -51,7 +51,44 @@ def transform_bbox_for_rotation(bbox, rotation, page_width, page_height):
         ]
 
     return bbox
+def sort_blocks_by_position(blocks : list[dict], y_tolerance: int = 10):
+    """
+        Function that sorts the blocks by their position on the page with their bbox_pdf coordinates
 
+        Sorting parameters :
+        bbox[1]  : y_min
+        bbox[0]  : x_min
+
+    :param blocks: (list[dict]) List of blocks to sort
+    :param y_error: (int) Maximum distance between two blocks to consider them on the same line
+    :return: (list[dict]) Sorted blocks
+    """
+
+    blocks_sorted = sorted(blocks, key=lambda x: x.get("bbox_pdf")[1])
+
+    lines = []
+    current_line = []
+
+    for block in blocks_sorted:
+        y = block["bbox_pdf"][1]
+
+        if not current_line:
+            current_line.append(block)
+            continue
+
+        last_y = current_line[0]["bbox_pdf"][1]
+
+        if abs(y - last_y) <= y_tolerance:
+            current_line.append(block)
+        else:
+            ## Sort the line with the x_min coordinate
+            lines.append(sorted(current_line, key=lambda b: b["bbox_pdf"][0]))
+            current_line = [block]
+
+    if current_line:
+        lines.append(sorted(current_line, key=lambda b: b["bbox_pdf"][0]))
+
+    return [block for line in lines for block in line]
 def image_coverage_ratio(page):
     page_area = page.rect.width * page.rect.height
     total_image_area = 0
@@ -362,6 +399,12 @@ class PdfClassifier:
                     print(f"  Bbox PDF (rotated space): {pdf_bbox_rotated}")
                     print(f"  Bbox PDF (original space): {pdf_bbox}")
                     print(f"  Rotation: {rotation}°")
+
+
+            ## Sort the detections block by appearance order into the page
+            detected_blocks = sort_blocks_by_position(
+                blocks=detected_blocks
+            )
         return detected_blocks
     def _show_predictions(self, prediction_dict: dict, page):
         """
