@@ -32,7 +32,8 @@ class PdfExtractor:
         )
         self._processor = LayoutBlockProcessor(
             pdf_path=self._pdf_path,
-            output_dir=self._config.output_dir
+            output_dir=self._config.output_dir,
+            table_settings=self._config.table_settings
         )
 
     def extract(self):

@@ -6,10 +6,13 @@ from src.utils.numpy_encoder import NumpyJSONEncoder
 
 class LayoutBlockProcessor:
 
-    def __init__(self, pdf_path: Path,  output_dir : str = None):
+    def __init__(self, pdf_path: Path,  output_dir : str = None, table_settings : dict = None):
 
         self._text_processor = TextProcessor()
-        self._table_processor = TableProcessor()
+        self._table_processor = TableProcessor(
+            output_dir=Path(output_dir),
+            table_settings=table_settings
+        )
         self._image_processor = ImageProcessor()
         self._math_processor = MathProcessor()
         self._scanned_image_processor = TextImageProcessor()
