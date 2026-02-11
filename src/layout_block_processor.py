@@ -2,6 +2,7 @@ from time import time
 import fitz, os, json
 from pathlib import Path
 from processors import *
+from src.processors.scanned_image_processor import ScannedImageProcessor
 from src.utils.numpy_encoder import NumpyJSONEncoder
 
 class LayoutBlockProcessor:
@@ -14,8 +15,13 @@ class LayoutBlockProcessor:
             table_settings=table_settings
         )
         self._image_processor = ImageProcessor()
-        self._math_processor = MathProcessor()
-        self._scanned_image_processor = TextImageProcessor()
+        self._math_processor = MathProcessor(
+            output_dir=Path(output_dir)
+        )
+        self._scanned_image_processor = ScannedImageProcessor(
+            output_dir=Path(output_dir),
+            device="cuda"
+        )
 
         self._process_pdf_path = pdf_path
         self._output_dir = output_dir if output_dir is not None else os.path.join(os.path.join(
