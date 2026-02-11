@@ -346,6 +346,7 @@ class PdfClassifier:
                     class_name = "image_scanned"
 
                 detection = {
+                    "id": i,
                     "class_id": int(cls_id),
                     "class_name": class_name,
                     "confidence": float(conf),
