@@ -38,7 +38,7 @@ class PdfExtractor:
 
     def extract(self):
 
-        ## Classify the pdf
+        ## Classify the PDF
         classification_dict = self._classifier.classify(
             pdf_path=self._pdf_path
         )
@@ -48,7 +48,7 @@ class PdfExtractor:
 
         ## Save the extracted content to a JSON file
         with open(os.path.join(self._config.output_dir, "extracted_content.json"), "w", encoding="utf-8") as f:
-            json.dump(extracted_content, f, indent=2, cls=NumpyJSONEncoder, ensure_ascii=False)
+            json.dump(extracted_content.to_dict(), f, indent=2, cls=NumpyJSONEncoder, ensure_ascii=False)
 
         ## Convert the extracted content to MD and HTML format and save them to a file
         if self._config.save_md:
@@ -61,6 +61,40 @@ class PdfExtractor:
         ## Return the extracted content
         return extracted_content
 
+    def to_markdown(self, page_number : int = 0):
+        """
+            Method that returns the markdown representation of the extracted content
+            If page_number is specified, returns the markdown representation of the corresponding page
+            Else returns the concatenation of the markdown representation of all pages
+        :param page_number: (int) Page number to return
+        :return: None
+        """
+        markdown_content = self.extract().to_markdown(
+            page_number=page_number
+        )
+
+        ## Save the extracted content to a file
+        file_name = f"{self._pdf_path.stem}.md" if page_number == 0 else f"{self._pdf_path.stem}_{page_number}.md"
+        with open(os.path.join(self._config.output_dir, file_name), "w", encoding="utf-8") as f:
+            f.write(markdown_content)
+
+
+    def to_html(self, page_number : int = 0):
+        """
+            Method that returns the html representation of the extracted content
+            If page_number is specified, returns the html representation of the corresponding page
+            Else returns the concatenation of the html representation of all pages
+        :param page_number: (int) Page number to return
+        :return: None
+        """
+        html_content = self.extract().to_html(
+            page_number=page_number
+        )
+
+        ## Save the extracted content to a file
+        file_name = f"{self._pdf_path.stem}.html" if page_number == 0 else f"{self._pdf_path.stem}_{page_number}.html"
+        with open(os.path.join(self._config.output_dir, file_name), "w", encoding="utf-8") as f:
+            f.write(html_content)
 
 
 if __name__ == "__main__":
@@ -69,4 +103,5 @@ if __name__ == "__main__":
         output_dir="D:/apprentissage/TexFromPDF/output"
     )
 
-    content = extractor.extract()
+    content = extractor.to_markdown()
+    print(content)
