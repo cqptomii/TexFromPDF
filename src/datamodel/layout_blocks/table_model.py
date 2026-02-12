@@ -59,6 +59,8 @@ class TableModel(BaseModel):
                     cell_attrs.append(f'rowspan="{rowspan}"')
                 if colspan > 1:
                     cell_attrs.append(f'colspan="{colspan}"')
+                ## Normalize cell content
+                cell_content = cell_content.replace("\n", "<br>")
 
                 attrs_str = " " + " ".join(cell_attrs) if cell_attrs else ""
                 html_table += f"<td{attrs_str}>{cell_content}</td>"
@@ -67,7 +69,7 @@ class TableModel(BaseModel):
 
             html_table += "</tr>"
 
-        html_table += "</table>"
+        html_table += "</table>\n"
         return html_table
     def _convert_table_to_json_blocks(self) -> str:
         """
