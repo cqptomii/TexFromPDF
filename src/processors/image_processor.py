@@ -1,7 +1,7 @@
 import fitz, base64, io
 from PIL import Image
 from src.processors import BaseProcessor
-from src.processors.datamodel import ImageModel
+from src.datamodel import ImageModel
 
 class ImageProcessor(BaseProcessor):
 

@@ -2,7 +2,7 @@ import fitz, os
 from pathlib import (Path)
 from PIL import Image, ImageDraw
 from src.processors import BaseProcessor
-from src.processors.datamodel import TableModel
+from src.datamodel import TableModel
 
 
 class TableProcessor(BaseProcessor):
@@ -47,7 +47,7 @@ class TableProcessor(BaseProcessor):
     def process(self, page, page_number: int, block: dict) -> TableModel:
         bbox = block.get("bbox_pdf", [])
         confidence = block.get("confidence", 0)
-        class_name = block.get("class_name", "Table")
+        class_name = block.get("class_name", "table")
         rect = fitz.Rect(bbox[0], bbox[1], bbox[2], bbox[3])
 
         ## Extract the table from the page

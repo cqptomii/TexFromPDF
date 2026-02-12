@@ -1,5 +1,5 @@
 from src.processors import BaseProcessor
-from src.processors.datamodel import TextModel
+from src.datamodel import TextModel
 
 class TextProcessor(BaseProcessor):
     def __init__(self):
