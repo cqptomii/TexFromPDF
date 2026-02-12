@@ -36,14 +36,14 @@ class TableModel(BaseModel):
                 # Calculate the colspan (merge horizontally)
                 colspan = 1
                 while (j + colspan < num_cols and
-                       self.structured_content[i][j + colspan].strip() == cell_content):
+                       self.structured_content[i][j + colspan].strip() == cell_content and cell_content != ""):
                     processed[i][j + colspan] = True
                     colspan += 1
 
                 # Calculate the rowspan (merge vertically)
                 rowspan = 1
                 can_expand = True
-                while can_expand and i + rowspan < num_rows:
+                while can_expand and i + rowspan < num_rows and cell_content:
                     for k in range(colspan):
                         if self.structured_content[i + rowspan][j + k].strip() != cell_content:
                             can_expand = False
