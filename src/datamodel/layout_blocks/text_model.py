@@ -11,7 +11,8 @@ class TextModel(BaseModel):
         return self.__dict__
     def to_markdown(self) -> str:
         if self.class_name.lower() in ["title", "section-header"]:
-            markdown_text = "##" + self.content + "\n"
+            self.content = self.content.replace("\n", " ")
+            markdown_text = "## " + self.content + "\n"
         else:
             markdown_text = self.content + "\n"
 
