@@ -36,6 +36,11 @@ class PdfExtractor:
             table_settings=self._config.table_settings
         )
 
+    def set_pdf_path(self, pdf_path: str):
+        if not os.path.exists(pdf_path):
+            raise FileNotFoundError(f"PDF file not found at {pdf_path}")
+
+        self._pdf_path = Path(pdf_path)
     def extract(self):
 
         ## Classify the PDF
@@ -77,8 +82,6 @@ class PdfExtractor:
         file_name = f"{self._pdf_path.stem}.md" if page_number == 0 else f"{self._pdf_path.stem}_{page_number}.md"
         with open(os.path.join(self._config.output_dir, file_name), "w", encoding="utf-8") as f:
             f.write(markdown_content)
-
-
     def to_html(self, page_number : int = 0):
         """
             Method that returns the html representation of the extracted content
@@ -99,9 +102,8 @@ class PdfExtractor:
 
 if __name__ == "__main__":
     extractor = PdfExtractor(
-        pdf_path="D:/apprentissage/TexFromPDF/data/sample_pdfs/page_004.pdf",
+        pdf_path="D:/apprentissage/TexFromPDF/data/sample_pdfs/page_033.pdf",
         output_dir="D:/apprentissage/TexFromPDF/output"
     )
 
-    content = extractor.to_markdown()
-    print(content)
+    extractor.to_markdown()
