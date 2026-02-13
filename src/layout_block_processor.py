@@ -66,7 +66,7 @@ class LayoutBlockProcessor:
                     dict_generated = self._math_processor.process(page, page_number, block)
                 elif class_name == "picture":
                      dict_generated = self._image_processor.process(page, page_number, block)
-                elif class_name == "image_scanned":
+                elif class_name == "scanned-image":
                     dict_generated = self._scanned_image_processor.process(page, page_number, block)
                 else:
                     dict_generated = self._text_processor.process(page, page_number, block)

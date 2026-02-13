@@ -5,109 +5,15 @@ import fitz, os, json, numpy as np
 
 from src.config.main_config import MainConfig
 from utils.numpy_encoder import NumpyJSONEncoder
-
-
-def image_bbox_to_pdf(bbox, scale):
-    x0, y0, x1, y1 = bbox
-    return [
-        (x0 / scale) -5,
-        (y0 / scale) -2,
-        (x1 / scale) + 5,
-        (y1 / scale) + 2
-    ]
-def transform_bbox_for_rotation(bbox, rotation, page_width, page_height):
-    """
-        Transforme les coordonnées d'une bbox en fonction de la rotation de la page
-    :param bbox: [x0, y0, x1, y1] coordonnées PDF
-    :param rotation: Angle de rotation appliqué (0, 90, 180, 270)
-    :param page_width: Largeur de la page PDF originale
-    :param page_height: Hauteur de la page PDF originale
-    :return: [x0, y0, x1, y1] coordonnées transformées
-    """
-    x0, y0, x1, y1 = bbox
-
-    if rotation == 0:
-        return bbox
-    elif rotation == 90:
-        return [
-            y0,
-            page_width - x1,
-            y1,
-            page_width - x0
-        ]
-    elif rotation == 180:
-        return [
-            page_width - x1,
-            page_height - y1,
-            page_width - x0,
-            page_height - y0
-        ]
-    elif rotation == 270:
-        return [
-            page_height - y1,
-            x0,
-            page_height - y0,
-            x1
-        ]
-
-    return bbox
-def sort_blocks_by_position(blocks : list[dict], y_tolerance: int = 10):
-    """
-        Function that sorts the blocks by their position on the page with their bbox_pdf coordinates
-
-        Sorting parameters :
-        bbox[1]  : y_min
-        bbox[0]  : x_min
-
-    :param blocks: (list[dict]) List of blocks to sort
-    :param y_error: (int) Maximum distance between two blocks to consider them on the same line
-    :return: (list[dict]) Sorted blocks
-    """
-
-    blocks_sorted = sorted(blocks, key=lambda x: x.get("bbox_pdf")[1])
-
-    lines = []
-    current_line = []
-
-    for block in blocks_sorted:
-        y = block["bbox_pdf"][1]
-
-        if not current_line:
-            current_line.append(block)
-            continue
-
-        last_y = current_line[0]["bbox_pdf"][1]
-
-        if abs(y - last_y) <= y_tolerance:
-            current_line.append(block)
-        else:
-            ## Sort the line with the x_min coordinate
-            lines.append(sorted(current_line, key=lambda b: b["bbox_pdf"][0]))
-            current_line = [block]
-
-    if current_line:
-        lines.append(sorted(current_line, key=lambda b: b["bbox_pdf"][0]))
-
-    return [block for line in lines for block in line]
-def image_coverage_ratio(page):
-    page_area = page.rect.width * page.rect.height
-    total_image_area = 0
-
-    for img in page.get_images(full=True):
-        xref = img[0]
-        rects = page.get_image_rects(xref)
-        for r in rects:
-            total_image_area += r.width * r.height
-
-    return total_image_area / page_area
+from utils.bounding_box import *
+from utils.scanned import is_scanned_image, is_scanned_block
 
 class PdfClassifier:
     def __init__(self, config : MainConfig):
 
-        self._model_name = config.classifier_config.model_name
-        self._device = config.classifier_config.device
+        self._config = config.classifier_config
 
-        self._model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models/layout_detection", self._model_name)
+        self._model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models/layout_detection", self._config.model_name)
         self._verbose = config.verbose
         self._output_dir = config.output_dir
         self._page_rotations = {}
@@ -194,7 +100,6 @@ class PdfClassifier:
         """
             Detect the page orientation based on the projection of the image
             Use detection of text with OpenCV
-        :param image_path: (str) path to the image of the page
         :return: (int) Rotation angle (0, 90, 180, 270)
         """
         mat = fitz.Matrix(2, 2)
@@ -232,7 +137,6 @@ class PdfClassifier:
         """
             Method that corrects the page rotation based on the text detected
         :param page: (fitz.Page) Page to correct rotation for
-        :param image_path: (str) optional path to the image of the page
         :return: (int) angle of rotation correction
         """
 
@@ -255,36 +159,6 @@ class PdfClassifier:
 
         return rotation_needed
 
-    ##
-    ## Scanned Image detection
-    ##
-    def _is_scanned_image(self, page) -> bool:
-        """
-            Method that checks if a page is a scanned image
-            The image is considered scanned if:
-                - It contains text
-                - The image ratio is close to the page ratio
-                - there is noise in the image
-
-            Score >=5 : the page is a scanned image
-            else : the page is not a scanned image
-        :param page: (fitz.Page) Page to check if it's a scanned image
-        :param image_bbox: (dict) Bounding box of the image in the page
-        :return: (bool) True if the page is a scanned image, False otherwise
-        """
-        score = 0
-        ## Check if we can extract text
-        if len(page.get_text("text").strip()) < 50:
-            score += 3
-
-        ## Check the ratio of image in the page
-        if image_coverage_ratio(page) > 0.85:
-            score += 3
-
-        ## Check if there is noise in the image
-        ## TO IMPLEMENT IF NEEDED
-
-        return score >= 5
     def _page_rasterization(self, doc, dpi: int = 300, page_format = "png") -> List[dict]:
         """
             Méthod that rasterize a pdf page
@@ -325,7 +199,7 @@ class PdfClassifier:
                     "page_rotation": self._page_rotations.get(i, 0),
                     "dpi": dpi,
                     "scale": self._zoom,
-                    "is_scanned": self._is_scanned_image(page)
+                    "is_scanned": is_scanned_image(page)
             }
 
             pages_metadata.append(page_metadata)
@@ -336,10 +210,18 @@ class PdfClassifier:
                 json.dump(page_metadata, f, indent=2, ensure_ascii=False)
 
         return pages_metadata
-    def _classify_page(self, page_metadata : dict) -> list:
+    def _classify_page(self, page, page_metadata : dict) -> Tuple[List[dict], set]:
+        """
+            Method that classifies each element of a pdf page using classification model
+            Each element is returned as a dictionary containing its class ID, name, confidence, bounding box and rotated bbox
+            The dictionary is sorted by appearance order into the page left to right and top to bottom
+        :param page: ('fitz.Page') Page to classify
+        :param page_metadata: (dict) Metadata of the page
+        :return: (list) List of dictionaries containing each element of the page and its classification
+        """
         results = self._model.predict(
             page_metadata.get("image_path", ""),
-            device=self._device,
+            device=self._config.device,
             verbose=self._verbose,
             conf=0.25,
             save=True,
@@ -347,6 +229,7 @@ class PdfClassifier:
         )
 
         detected_blocks = []
+        block_removed = set()
         for r in results:
             boxes = r.boxes
 
@@ -379,8 +262,8 @@ class PdfClassifier:
 
 
                 ## In case of the detected class is an image, check if it's a scanned image
-                if class_name == "picture" and page_metadata.get("is_scanned", False):
-                    class_name = "image_scanned"
+                if is_scanned_block(page=page, bbox=pdf_bbox, class_name=class_name):
+                    class_name = "scanned-image"
 
                 detection = {
                     "id": i,
@@ -400,12 +283,17 @@ class PdfClassifier:
                     print(f"  Bbox PDF (original space): {pdf_bbox}")
                     print(f"  Rotation: {rotation}°")
 
+            ## Check if there are redundant blocks identified
+            blocks_corrected, block_removed = correct_blocks_redundancy(
+                blocks=detected_blocks,
+                class_list=self._config.labels
+            )
 
             ## Sort the detections block by appearance order into the page
             detected_blocks = sort_blocks_by_position(
-                blocks=detected_blocks
+                blocks=blocks_corrected
             )
-        return detected_blocks
+        return detected_blocks, block_removed
     def _show_predictions(self, prediction_dict: dict, page):
         """
             Method that shows each prediction on the PDF page itself
@@ -470,7 +358,6 @@ class PdfClassifier:
         """
             Méthod that classifies each element of a pdf page
         :param pdf_path: (Path) Path to the pdf file
-        :param page_number: (int) Page number to classify
         :return: (dict) Dictionary containing each element of the page and its classification
         """
 
@@ -503,8 +390,13 @@ class PdfClassifier:
                     "height": page_metadata.get("page_height")
                 },
                 "page_rotation": page_metadata.get("page_rotation"),
-                "blocks": self._classify_page(page_metadata),
+                "blocks": [],
+                "removed_blocks": []
             }
+
+            blocks, removed_blocks = self._classify_page(page=page, page_metadata=page_metadata)
+            page_dict["blocks"] = blocks
+            page_dict["removed_blocks"] = list(removed_blocks)
 
             ## Classify page
             pages_classifications.append(
