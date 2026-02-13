@@ -13,6 +13,8 @@ class TextModel(BaseModel):
         if self.class_name.lower() in ["title", "section-header"]:
             self.content = self.content.replace("\n", " ")
             markdown_text = "## " + self.content + "\n"
+        elif self.class_name.lower() in ["formula"]:
+            markdown_text = f"$${self.content}$$\n"
         else:
             markdown_text = self.content + "\n"
 

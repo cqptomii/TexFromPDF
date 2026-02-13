@@ -90,7 +90,7 @@ class TableProcessor(BaseProcessor):
                             other_line.pop(i)
                 else:
                     first_line.append(cell)
-            elif i > 0:
+            elif 0 < i < len(first_line):
                 first_line.append(first_line[i - 1])
 
         matrix.append(first_line)

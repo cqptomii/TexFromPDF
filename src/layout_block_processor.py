@@ -62,7 +62,7 @@ class LayoutBlockProcessor:
                 ## Determine the process to use within the block
                 if class_name == "table":
                     dict_generated = self._table_processor.process(page, page_number, block)
-                elif class_name == "math":
+                elif class_name == "formula":
                     dict_generated = self._math_processor.process(page, page_number, block)
                 elif class_name == "picture":
                      dict_generated = self._image_processor.process(page, page_number, block)

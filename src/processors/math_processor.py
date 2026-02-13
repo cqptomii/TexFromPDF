@@ -17,7 +17,12 @@ class MathProcessor(BaseProcessor):
         self._load_model()
     def _load_model(self):
         self._processor = TrOCRProcessor.from_pretrained(self._ocr_model_name, use_fast=True)
-        self._model = ORTModelForVision2Seq.from_pretrained(self._ocr_model_name, use_cache=False)
+        self._model = ORTModelForVision2Seq.from_pretrained(
+            self._ocr_model_name,
+            use_cache=False,
+            decoder_file_name="decoder_model.onnx",
+            encoder_file_name="encoder_model.onnx"
+        )
     def process(self, page, page_number: int, block: dict) -> TextModel:
 
         bbox = block.get("bbox_pdf", [])
@@ -28,7 +33,7 @@ class MathProcessor(BaseProcessor):
 
         ## Extract the image from the page
         mat = fitz.Matrix(2.0, 2.0)
-        pix = page.get_pixmap(rect=rect, matrix=mat)
+        pix = page.get_pixmap(clip=rect, matrix=mat)
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
 
         img_dir = os.path.join(self._output_dir, "predictions", f"page_{page_number:04d}", "formula")
@@ -43,10 +48,11 @@ class MathProcessor(BaseProcessor):
         generated_text = self._processor.batch_decode(generated_ids, skip_special_tokens=True)
 
         print(f'generated_ids: {generated_ids}, \ngenerated text: {generated_text}')
+
         return TextModel(
             page=page_number,
             bbox=bbox,
             class_name=class_name,
             confidence=confidence,
-            content=generated_text
+            content=generated_text[0]
         )
