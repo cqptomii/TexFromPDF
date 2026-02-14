@@ -11,7 +11,9 @@ class LayoutBlockProcessor:
 
     def __init__(self, pdf_path: Path,  output_dir : str = None, table_settings : dict = None):
 
-        self._text_processor = TextProcessor()
+        self._text_processor = TextProcessor(
+            output_dir=Path(output_dir)
+        )
         self._table_processor = TableProcessor(
             output_dir=Path(output_dir),
             table_settings=table_settings

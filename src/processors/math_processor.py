@@ -1,28 +1,17 @@
 from PIL import Image
 from pathlib import Path
-from transformers import TrOCRProcessor
-from optimum.onnxruntime import ORTModelForVision2Seq
 import fitz, os
 
 from src.processors import BaseProcessor
 from src.datamodel import TextModel
+from src.ocr import FormulaRecognition
 
 class MathProcessor(BaseProcessor):
     def __init__(self, output_dir: Path = None, model_name: str = "breezedeus/pix2text-mfr-1.5"):
         super().__init__()
         self._output_dir = output_dir if output_dir is not None else os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
-        self._ocr_model_name = model_name
-
         ## Load the ocr model
-        self._load_model()
-    def _load_model(self):
-        self._processor = TrOCRProcessor.from_pretrained(self._ocr_model_name, use_fast=True)
-        self._model = ORTModelForVision2Seq.from_pretrained(
-            self._ocr_model_name,
-            use_cache=False,
-            decoder_file_name="decoder_model.onnx",
-            encoder_file_name="encoder_model.onnx"
-        )
+        self._model = FormulaRecognition(model_name=model_name)
     def process(self, page, page_number: int, block: dict) -> TextModel:
 
         bbox = block.get("bbox_pdf", [])
@@ -43,11 +32,7 @@ class MathProcessor(BaseProcessor):
         img.save(os.path.join(img_dir, f"page_{page_number:04d}_{block.get('id',-1)}.png"))
 
         ## Process the image using the ocr model
-        pixel_values = self._processor(images=img, return_tensors="pt").pixel_values
-        generated_ids = self._model.generate(pixel_values)
-        generated_text = self._processor.batch_decode(generated_ids, skip_special_tokens=True)
-
-        print(f'generated_ids: {generated_ids}, \ngenerated text: {generated_text}')
+        generated_text = self._model.recognize(img)
 
         return TextModel(
             page=page_number,
