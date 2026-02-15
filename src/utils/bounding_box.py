@@ -130,15 +130,29 @@ def correct_blocks_redundancy(blocks : list, class_list : list[str]) -> Tuple[li
 
             if is_superimposed(current_bbox, other_bbox):
                 ## Choose the block to keep depending on the class
+                print(current_class.lower(), other_class.lower())
                 if current_class == other_class:
                     blocks_to_remove.add(j)
                 elif (current_class.lower() in class_list and current_class.lower() not in ["table", "picture", "scanned-image"]) and other_class.lower() == "formula":
+                    print(f"Remove other class {other_class.lower()}")
                     blocks_to_remove.add(j)
-                elif current_class.lower() not in ["picture", "scanned-image"] and  other_class.lower() in ["picture", "scanned-image"] :
+                elif (other_class.lower() in class_list and other_class.lower() not in ["table", "picture", "scanned-image"]) and current_class.lower() == "formula":
+                    print(f"Remove current class {current_class.lower()}")
+                    blocks_to_remove.add(i)
+                elif current_class.lower() not in ["picture", "scanned-image"] and other_class.lower() in ["picture", "scanned-image"] :
+                    print(f"Remove other class {other_class.lower()}")
+                    blocks_to_remove.add(j)
+                elif current_class.lower() in ["picture", "scanned-image"] and current_class.lower() not in ["picture", "scanned-image"] :
+                    print(f"Remove current class {current_class.lower()}")
+                    blocks_to_remove.add(i)
+                elif other_class.lower() == "table" and current_class.lower() in ["picture", "scanned-image"]:
+                    print(f"Remove current class {current_class.lower()}")
+                    blocks_to_remove.add(i)
+                elif current_class.lower() == "table" and other_class.lower() in ["picture", "scanned-image"]:
+                    print(f"Remove current class {other_class.lower()}")
                     blocks_to_remove.add(j)
                 else:
-                    blocks_to_remove.add(j)
-
+                    print(f"Remove no classes")
             ## If the other block is contained in the current block, keep the current block
             elif contained(current_bbox, other_bbox):
                 should_keep = False
@@ -147,7 +161,7 @@ def correct_blocks_redundancy(blocks : list, class_list : list[str]) -> Tuple[li
             elif contained(other_bbox, current_bbox):
                 blocks_to_remove.add(j)
 
-        if should_keep:
+        if should_keep and i not in blocks_to_remove:
             blocks_to_keep.append(block)
 
     return blocks_to_keep, blocks_to_remove
