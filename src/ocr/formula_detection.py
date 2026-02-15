@@ -37,32 +37,26 @@ class FormulaDetection:
             device=self._device
         )
     def detect(self,  img, **kwargs):
-
-        resized_shape = kwargs.get("resized_shape", 768)
         img0 = img.convert('RGB')
-
-        w, h = img0.size
-        ratio = resized_shape / w
-        resized_shape = (int(h * ratio), resized_shape)  # (H, W)
-
 
         ## Extract blocks recognized
         blocks = []
 
-        boxes = self._mfd(img0.copy(), resized_shape=resized_shape)
+        boxes = self._mfd(img0.copy())
         for box_info in boxes:
             box = box_info['box']
             xmin, ymin, xmax, ymax = (
-                int(box[0][0]),
-                int(box[0][1]),
-                int(box[2][0]),
-                int(box[2][1]),
+                box[0][0],
+                box[0][1],
+                box[2][0],
+                box[2][1],
             )
             box_info.pop('box')
 
             block = {
-                "bbox": [xmin, ymin, xmax, ymax],
-                **box_info
+                "class_name": box_info['type'],
+                "confidence": box_info['score'],
+                "bbox": [xmin, ymin, xmax, ymax]
             }
 
             blocks.append(block)
