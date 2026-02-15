@@ -1,7 +1,6 @@
-import fitz, cv2, os,  numpy as np
+import fitz, cv2, os, re,  numpy as np
 from PIL import Image
 from pathlib import Path
-from src.utils.bounding_box import sort_blocks_by_position
 from src.processors import BaseProcessor
 from src.datamodel import TextModel
 from src.ocr import FormulaDetection, FormulaRecognition
@@ -99,25 +98,29 @@ class TextProcessor(BaseProcessor):
         for formula in formula_detected:
             bbox_img = formula["bbox"]
 
-            x1 = rect[0] + bbox_img[0] / scale
-            y1 = rect[1] + bbox_img[1] / scale
-            x2 = rect[0] + bbox_img[2] / scale
-            y2 = rect[1] + bbox_img[3] / scale
+            x1 = rect[0] + bbox_img[0] / scale - 1
+            y1 = rect[1] + bbox_img[1] / scale - 1
+            x2 = rect[0] + bbox_img[2] / scale - 1
+            y2 = rect[1] + bbox_img[3] / scale - 1
 
             formula_rect_pdf = [x1, y1, x2, y2]
 
             naive_content_extracted : str = page.get_textbox(rect=formula_rect_pdf)
-            naive_content_extracted = naive_content_extracted.replace(" ", "")
+            normalized_content  = naive_content_extracted.replace(" ", "")
             print(f"Naive content extracted: {naive_content_extracted}")
-            if len(naive_content_extracted) == 1:
-                print(f"Skip formula {naive_content_extracted}")
+            if len(normalized_content) == 1:
+                print(f"Skip formula {normalized_content}")
+                continue
 
             ## Recognize the formula in the given bbox
             img_formula = img.crop(bbox_img)
             formula_text = self._formula_recognizer.recognize(img_formula)
+            print(f"Formula text: {formula_text}")
+            initial_ocr_text = initial_ocr_text.replace(naive_content_extracted, f" ${formula_text[0]}$ ")
 
-            initial_ocr_text = initial_ocr_text.replace(naive_content_extracted, f" ${formula_text[0]}$ ", 1)
 
+        ## Replace \n by spaces
+        initial_ocr_text = initial_ocr_text.replace("\n", " ")
         # Retourner le résultat selon le format attendu
         return TextModel(
             page=page_number,
