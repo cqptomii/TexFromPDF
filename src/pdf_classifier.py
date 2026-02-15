@@ -1,4 +1,3 @@
-from typing import List, Dict, Any
 from ultralytics import YOLO
 from pathlib import Path
 import fitz, os, json, numpy as np

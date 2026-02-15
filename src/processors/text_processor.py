@@ -1,4 +1,4 @@
-import fitz
+import fitz, cv2, os,  numpy as np
 from PIL import Image
 from pathlib import Path
 from src.utils.bounding_box import sort_blocks_by_position
@@ -14,37 +14,42 @@ class TextProcessor(BaseProcessor):
         self._formula_recognizer = FormulaRecognition()
         self._output_dir = output_dir
 
-    def _identified_bbox_mask(self, image_bbox, blocks_list: list):
-        ix1, iy1, ix2, iy2 = image_bbox
+    def _show_debug(self, image, bbox_list, block_id: int, show : bool = False, save : bool = True):
+        if not isinstance(image, np.ndarray):
+            image = np.array(image)
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        blocks = []
-        for bbox in blocks_list:
+        debug_img = image.copy()
+
+        for bbox in bbox_list:
             if not bbox or len(bbox) != 4:
                 continue
 
             x1, y1, x2, y2 = bbox
-            x1, x2 = min(x1, x2), max(x1, x2)
-            y1, y2 = min(y1, y2), max(y1, y2)
 
-            if x2 > ix1 and x1 < ix2:
-                blocks.append((x1, y1, x2, y2))
+            x1, x2 = int(min(x1, x2)), int(max(x1, x2))
+            y1, y2 = int(min(y1, y2)), int(max(y1, y2))
 
-        blocks.sort(key=lambda b: b[0])
+            cv2.rectangle(
+                debug_img,
+                (x1, y1),
+                (x2, y2),
+                (0, 0, 255),  # rouge
+                2  # épaisseur
+            )
 
-        result = []
+        if show:
+            cv2.imshow("DEBUG BBOX", debug_img)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
-        current_x = ix1
+        if save:
+            dir = self._output_dir / "text"
+            os.makedirs(dir, exist_ok=True)
 
-        for x1, y1, x2, y2 in blocks:
-            if x1 > current_x:
-                result.append((current_x, iy1, x1, iy2))
+            cv2.imwrite(str(dir / f"image_{block_id}.jpg"), debug_img)
 
-            current_x = max(current_x, x2)
 
-        if current_x < ix2:
-            result.append((current_x, iy1, ix2, iy2))
-
-        return result
     def process(self, page, page_number: int, block: dict) -> TextModel:
         """
             Method that processes a text block
@@ -59,16 +64,25 @@ class TextProcessor(BaseProcessor):
 
 
         ## Extract the image associated to the zone
+        scale = 2.0
         img = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), clip=rect)
         img = Image.frombytes("RGB", [img.width, img.height], img.samples)
 
         ## Extract the text with PyMuPDF
-        initial_ocr_text = page.get_textbox(rect=rect)
+        initial_ocr_text : str = page.get_textbox(rect=rect)
 
         ## Check if there is any formulas in the text
         formula_detected = self._formula_detector.detect(img)
 
-        print(f"Detected {len(formula_detected)} formula(s) in the text block")
+        bbox_list = []
+        for formula_detection in formula_detected:
+            bbox_list.append(formula_detection["bbox"])
+
+        self._show_debug(
+            image=img,
+            bbox_list=bbox_list,
+            block_id=block["id"]
+        )
 
         if not formula_detected or class_name.lower() in ["page-header", "page-footer"]:
             print(f"No formulas detected, using simple OCR text")
@@ -80,55 +94,29 @@ class TextProcessor(BaseProcessor):
                 content=initial_ocr_text.strip()
             )
 
-        ## Identified zones that are not covered by the defined bbox
-        zones = self._identified_bbox_mask(
-            image_bbox=rect,
-            blocks_list=formula_detected
-        )
+        print(f"Detected {len(formula_detected)} formula(s) in the text block")
+        ## Replace text content from the global text with the math recognition prediction
+        for formula in formula_detected:
+            bbox_img = formula["bbox"]
 
-        print(f"Image bbox : {rect}")
-        for i, zone in enumerate(zones):
-            print(f"Zone {i} : {zone}")
+            x1 = rect[0] + bbox_img[0] / scale
+            y1 = rect[1] + bbox_img[1] / scale
+            x2 = rect[0] + bbox_img[2] / scale
+            y2 = rect[1] + bbox_img[3] / scale
 
-        mixed_blocks = []
-        ## Extract the content of each zone uncovered by the formulas
-        for zone in zones:
-            content = page.get_textbox(rect=fitz.Rect(zone[0],zone[1], zone[2], zone[3]))
+            formula_rect_pdf = [x1, y1, x2, y2]
 
-            mixed_blocks.append(
-                {
-                    "class_name": "text",
-                    "content": content,
-                    "bbox_pdf": zone
-                }
-            )
+            naive_content_extracted : str = page.get_textbox(rect=formula_rect_pdf)
+            naive_content_extracted = naive_content_extracted.replace(" ", "")
+            print(f"Naive content extracted: {naive_content_extracted}")
+            if len(naive_content_extracted) == 1:
+                print(f"Skip formula {naive_content_extracted}")
 
-        for i, formula_block in enumerate(formula_detected):
-            bbox = formula_block["bbox"]
-
-            img_formula = img.crop(bbox)
+            ## Recognize the formula in the given bbox
+            img_formula = img.crop(bbox_img)
             formula_text = self._formula_recognizer.recognize(img_formula)
 
-            if formula_text and len(formula_text) > 0:
-                formula_latex = formula_text[0]
-                print(f"Formula {i + 1}: {formula_latex}")
-
-                mixed_blocks.append({
-                    "class_name": "formula",
-                    "content": formula_latex,
-                    "bbox_pdf": bbox
-                })
-
-        ## Sort blocks
-        sorted_blocks = sort_blocks_by_position(mixed_blocks)
-
-        ocr_text : str = ""
-        ## Merge content line by line
-        for block in sorted_blocks:
-            if block["class_name"] == "formula":
-                ocr_text += f" $${block['content']}$$"
-            else:
-                ocr_text += f" {block['content']}"
+            initial_ocr_text = initial_ocr_text.replace(naive_content_extracted, f" ${formula_text[0]}$ ", 1)
 
         # Retourner le résultat selon le format attendu
         return TextModel(
@@ -136,6 +124,6 @@ class TextProcessor(BaseProcessor):
             bbox=rect,
             class_name=block.get("class_name", "text"),
             confidence=block.get("confidence", 0),
-            content=ocr_text
+            content=initial_ocr_text.strip()
         )
 
