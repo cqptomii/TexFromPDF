@@ -10,7 +10,7 @@ class TextModel(BaseModel):
     def to_dict(self):
         return self.__dict__
     def to_markdown(self) -> str:
-        if self.class_name.lower() in ["title", "section-header"]:
+        if self.class_name.lower() in ["title", "section-header", "page-header"]:
             self.content = self.content.replace("\n", " ")
             markdown_text = "## " + self.content + "\n"
         elif self.class_name.lower() in ["formula"]:
