@@ -56,7 +56,7 @@ class FormulaDetection:
             block = {
                 "class_name": box_info['type'],
                 "confidence": box_info['score'],
-                "bbox": [xmin, ymin, xmax, ymax]
+                "bbox_pdf": [xmin, ymin, xmax, ymax]
             }
 
             blocks.append(block)

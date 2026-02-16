@@ -1,4 +1,5 @@
-from typing import Tuple, List
+from typing import Tuple
+import numpy as np
 
 ## Bounding box transformation functions
 def image_bbox_to_pdf(bbox, scale):
@@ -100,6 +101,77 @@ def contained(bbox_1, bbox_2, tolerance : int = 10) -> bool:
         (bbox_2[2] + tolerance) >= bbox_1[2] and \
         (bbox_2[3] + tolerance) >= bbox_1[3]
 
+def identified_bbox_mask(image, blocks_list):
+    if isinstance(image, np.ndarray):
+        height, width = image.shape[:2]
+    else:
+        width, height = image.size
+
+    xs = {0, width}
+    ys = {0, height}
+
+    clean_blocks = []
+
+    ## Clamp each block bbox within the image width and height
+    for bbox in blocks_list:
+        if not bbox or len(bbox) != 4:
+            continue
+
+        x1, y1, x2, y2 = bbox
+        x1, x2 = sorted((max(0, x1), min(width, x2)))
+        y1, y2 = sorted((max(0, y1), min(height, y2)))
+
+        clean_blocks.append((x1, y1, x2, y2))
+        xs.update([x1, x2])
+        ys.update([y1, y2])
+
+    xs = sorted(xs)
+    ys = sorted(ys)
+
+    ## Create cells corresponding to the image
+    cells = []
+    for i in range(len(xs) - 1):
+        for j in range(len(ys) - 1):
+
+            cell = (xs[i], ys[j], xs[i + 1], ys[j + 1])
+
+            covered = False
+            for bx in clean_blocks:
+                if contained(cell, bx) or contained(bx, cell) or is_superimposed(cell, bx) or is_superimposed(bx, cell):
+                    covered = True
+                    break
+
+            if not covered:
+                cells.append(cell)
+
+
+    ## Merge cells horizontaly
+    lines = {}
+    for r in cells:
+        key = (r[1], r[3])  # y1, y2
+        lines.setdefault(key, []).append(r)
+
+    merged = []
+
+    for (y1, y2), line_rects in lines.items():
+
+        line_rects.sort(key=lambda r: r[0])
+
+        current = line_rects[0]
+
+        for r in line_rects[1:]:
+
+            if r[0] == current[2]:
+                current = (current[0], y1, r[2], y2)
+            else:
+                merged.append(current)
+                current = r
+
+        merged.append(current)
+
+
+
+    return merged
 
 def correct_blocks_redundancy(blocks : list, class_list : list[str]) -> Tuple[list, set]:
     """
