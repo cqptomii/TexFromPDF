@@ -58,9 +58,11 @@ class PdfExtractor:
         ## Convert the extracted content to MD and HTML format and save them to a file
         if self._config.save_md:
             print("Saving extracted content to MD format...")
+            self.to_markdown()
 
         if self._config.save_html:
             print("Saving extracted content to HTML format...")
+            self.to_html()
 
 
         ## Return the extracted content

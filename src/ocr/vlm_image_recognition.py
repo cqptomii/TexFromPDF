@@ -14,6 +14,7 @@ class VlmImageRecognition:
         if self._device in ["cuda", "gpu"]:
             if not torch.cuda.is_available():
                 self._device = "cpu"
+                print(f"CUDA is not available. Using CPU instead for VLM model : {model_name}")
 
         self._prompts = {
             "ocr": "OCR:",

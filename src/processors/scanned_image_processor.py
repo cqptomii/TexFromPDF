@@ -8,7 +8,7 @@ from src.processors import BaseProcessor
 from src.datamodel import TextModel
 
 class ScannedImageProcessor(BaseProcessor):
-    def __init__(self, output_dir: Path = None, model_name: str = "PaddlePaddle/PaddleOCR-VL-1.5", device: str = "cpu", task : str = "ocr"):
+    def __init__(self, output_dir: Path = None, model_name: str = "PaddlePaddle/PaddleOCR-VL-1.5", device: str = "cuda", task : str = "ocr"):
         super().__init__()
 
         self._output_dir = output_dir if output_dir is not None else os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
