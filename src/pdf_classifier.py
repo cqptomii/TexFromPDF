@@ -1,5 +1,6 @@
 from ultralytics import YOLO
 from pathlib import Path
+from typing import List
 import fitz, os, json, numpy as np
 
 from src.config.main_config import MainConfig
