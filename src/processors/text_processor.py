@@ -2,7 +2,7 @@ import fitz, cv2, os, numpy as np
 from PIL import Image
 from pathlib import Path
 from src.processors import BaseProcessor
-from src.datamodel import TextModel
+from src.datamodel import TextModel, TextFormulaModel
 from src.ocr import FormulaDetection, FormulaRecognition
 from src.utils.bounding_box import identified_bbox_mask, overlaps, sort_blocks_by_position
 from src.utils.utils import normalize_text, is_empty
@@ -83,7 +83,7 @@ class TextProcessor(BaseProcessor):
                     })
 
         return text_box
-    def process(self, page, page_number: int, block: dict) -> TextModel:
+    def process(self, page, page_number: int, block: dict) -> TextModel | TextFormulaModel:
         """
             Method that processes a text block
             Extract all the text from the bbox in the given page
@@ -191,11 +191,12 @@ class TextProcessor(BaseProcessor):
             for b in sorted_bboxes:
                 ocr_text += f"{b["content"]} "
 
-            return TextModel(
+            return TextFormulaModel(
                 page=page_number,
                 bbox=rect,
                 class_name=block.get("class_name", "text"),
                 confidence=block.get("confidence", 0),
+                structured_blocks=sorted_bboxes,
                 content=ocr_text.strip(),
             )
         else:
