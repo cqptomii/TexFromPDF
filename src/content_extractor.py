@@ -12,15 +12,10 @@ class ContentExtractor:
         self._pdf_path = Path(pdf_path)
         base_dir = output_dir if output_dir is not None else os.path.join(os.path.dirname(os.path.dirname(__file__)), "output")
 
-        classifier_config = ClassifierConfig(
-            device=device,
-            model_name=model_name
-        )
-
         ## Store configuration
         self._config = MainConfig.from_dict(
             {
-                "classifier_config": classifier_config,
+                "classifier_config": {"device": device, "model_name": model_name},
                 "output_dir": os.path.join(base_dir, f"{self._pdf_path.stem}_{time():.02f}"),
                 "verbose": verbose,
                 **kwargs

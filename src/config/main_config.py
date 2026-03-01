@@ -20,8 +20,13 @@ class MainConfig:
 
     @classmethod
     def from_dict(cls, config: dict):
+        if "classifier_config" in config:
+            config["classifier_config"] = ClassifierConfig.from_dict(config["classifier_config"])
         return cls(**config)
 
     @classmethod
     def from_yaml(cls, path: str):
-        return cls.from_dict(config=yaml.safe_load(open(path)))
+        config = yaml.safe_load(open(path))
+        if "classifier_config" in config:
+            config["classifier_config"] = ClassifierConfig.from_dict(config["classifier_config"])
+        return cls.from_dict(config=config)
