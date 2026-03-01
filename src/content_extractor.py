@@ -1,12 +1,12 @@
 import os, json
 from pathlib import Path
 from time import time
-from src.pdf_classifier import PdfClassifier
+from src.content_classifier import ContentClassifier
 from src.config import MainConfig, ClassifierConfig
 from src.layout_block_processor import LayoutBlockProcessor
 from src.utils.numpy_encoder import NumpyJSONEncoder
 
-class PdfExtractor:
+class ContentExtractor:
 
     def __init__(self, pdf_path: str, output_dir: str, device: str = "cpu", model_name: str = "yolov12l-doclaynet.pt",  verbose : bool = False, **kwargs):
         self._pdf_path = Path(pdf_path)
@@ -27,7 +27,7 @@ class PdfExtractor:
             }
         )
 
-        self._classifier = PdfClassifier(
+        self._classifier = ContentClassifier(
             config=self._config
         )
         self._processor = LayoutBlockProcessor(
@@ -103,8 +103,8 @@ class PdfExtractor:
 
 
 if __name__ == "__main__":
-    extractor = PdfExtractor(
-        pdf_path="D:/apprentissage/TexFromPDF/data/sample_pdfs/page_033.pdf",
+    extractor = ContentExtractor(
+        pdf_path="D:/apprentissage/TexFromPDF/data/sample_pdfs/page_010.pdf",
         output_dir="D:/apprentissage/TexFromPDF/output"
     )
 

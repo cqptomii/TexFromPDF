@@ -8,7 +8,7 @@ from utils.numpy_encoder import NumpyJSONEncoder
 from utils.bounding_box import *
 from utils.scanned import is_scanned_image, is_scanned_block
 
-class PdfClassifier:
+class ContentClassifier:
     def __init__(self, config : MainConfig):
 
         self._config = config.classifier_config

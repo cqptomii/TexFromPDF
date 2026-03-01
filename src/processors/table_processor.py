@@ -63,6 +63,8 @@ class TableProcessor(BaseProcessor):
                 structured_content=[]
             )
 
+        print(f" {len(table.tables)} table(s) detected on page {page_number} with bbox {bbox}")
+
         ## Save the table identified for debuging
         self._save_debug_image(page, table, page_number, block)
 
@@ -71,6 +73,9 @@ class TableProcessor(BaseProcessor):
         matrix = []
         first_line = []
         other_lines = table[1:]
+
+        for line in table:
+            print(line)
 
         for i, cell in enumerate(table[0]):
             if cell is not None:
@@ -90,7 +95,7 @@ class TableProcessor(BaseProcessor):
                             other_line.pop(i)
                 else:
                     first_line.append(cell)
-            elif 0 < i < len(first_line):
+            elif 0 < i < len(table[0]):
                 first_line.append(first_line[i - 1])
 
         matrix.append(first_line)
@@ -103,17 +108,28 @@ class TableProcessor(BaseProcessor):
 
                 if col and col.strip():
                     filtered_row.append(col.strip())
+                elif col is None:
+                    if i > 0:
+                        filtered_row.append(row[i - 1])
+                        row[i] = row[i - 1]
+                        continue
+                    else:
+                        filtered_row.append(None)
                 else:
-                    if i < len(first_line):
-                        if first_line[i]:
-                            filtered_row.append(col)
-                            continue
+                    filtered_row.append('')
 
             ## Keep the line if it contains at least one cell
             if filtered_row:
                 nb_val = len([cell for cell in filtered_row if cell and cell.strip() and cell != ''])
                 if nb_val > 0:
                     other_lines_corrected.append(filtered_row)
+
+        print("=" * 30)
+        print("First line :", first_line)
+        for other_line_corrected in other_lines_corrected:
+            print(other_line_corrected)
+        print("=" * 30)
+
 
         matrix.extend(other_lines_corrected)
 
