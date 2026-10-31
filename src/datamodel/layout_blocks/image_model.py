@@ -1,6 +1,4 @@
 from dataclasses import dataclass
-from tkinter.messagebox import RETRY
-
 from src.datamodel.layout_blocks.base_model import BaseModel
 
 @dataclass

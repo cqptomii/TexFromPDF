@@ -3,40 +3,54 @@ import fitz, os, json
 from pathlib import Path
 
 import hashlib
-from processors import *
+from src.processors import (
+    TextProcessor,
+    TableProcessor,
+    ImageProcessor,
+    MathProcessor,
+    ScannedImageProcessor,
+)
 from src.utils.numpy_encoder import NumpyJSONEncoder
 from src.datamodel import Page, Document
 
 class LayoutBlockProcessor:
 
-    def __init__(self, pdf_path: Path,  output_dir : str = None, table_settings : dict = None):
+    def __init__(self, pdf_path: Path,  output_dir : str = None, table_settings : dict = None, device : str = "cpu"):
+
+        self._process_pdf_path = Path(pdf_path)
+        self._output_dir = output_dir if output_dir is not None else os.path.join(os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), "output"), f"{self._process_pdf_path.stem}_{time():.02f}")
 
         self._text_processor = TextProcessor(
-            output_dir=Path(output_dir)
+            output_dir=Path(self._output_dir),
+            device=device
         )
         self._table_processor = TableProcessor(
-            output_dir=Path(output_dir),
+            output_dir=Path(self._output_dir),
             table_settings=table_settings
         )
         self._image_processor = ImageProcessor()
         self._math_processor = MathProcessor(
-            output_dir=Path(output_dir)
+            output_dir=Path(self._output_dir)
         )
         self._scanned_image_processor = ScannedImageProcessor(
-            output_dir=Path(output_dir),
-            device="cuda"
+            output_dir=Path(self._output_dir),
+            device=device
         )
 
-        self._process_pdf_path = pdf_path
-        self._output_dir = output_dir if output_dir is not None else os.path.join(os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "output"), f"{self._process_pdf_path.stem}_{time():.02f}")
+    def set_pdf_path(self, pdf_path: Path):
+        """
+            Method that updates the pdf processed
+        :param pdf_path: (Path) Path to the pdf file
+        """
+        self._process_pdf_path = Path(pdf_path)
 
-    def process(self, document : list[dict]):
+    def process(self, document : list[dict]) -> Document:
         """
             Method that processes each block of each page of a pdf
-            Generate a dictionary containing content of each block extracted from the pdf
+            Generate a Document containing content of each block extracted from the pdf
         :param document: (list[dict]) List of pages extracted from a pdf
-        :return: (dict)
+        :return: (Document)
         """
         doc = fitz.open(self._process_pdf_path)
         doc_content = Document(
@@ -75,29 +89,22 @@ class LayoutBlockProcessor:
 
                 print(f"Generated dictionary: {dict_generated}")
 
-                ## Convert Datamodel Class to Dictionary
+                ## Add the generated block to the page
                 if dict_generated:
                     page_content.content_blocks.append(dict_generated)
 
 
             doc_content.pages.append(page_content)
 
+        doc.close()
+
         print("=" * 30)
         print("Generated content:", doc_content)
         print("=" * 30)
+
         ## Save the processed document to JSON file
-        with open(self._output_dir + "/extracted_content.json", "w", encoding="utf-8") as f:
+        os.makedirs(self._output_dir, exist_ok=True)
+        with open(os.path.join(self._output_dir, "extracted_content.json"), "w", encoding="utf-8") as f:
             json.dump(doc_content.to_dict(), f, indent=2, cls=NumpyJSONEncoder, ensure_ascii=False)
 
-
         return doc_content
-
-
-
-
-
-
-
-
-
-

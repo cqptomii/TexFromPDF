@@ -1,12 +1,17 @@
 from ultralytics import YOLO
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 import fitz, os, json, numpy as np
 
 from src.config.main_config import MainConfig
-from utils.numpy_encoder import NumpyJSONEncoder
-from utils.bounding_box import *
-from utils.scanned import is_scanned_image, is_scanned_block
+from src.utils.numpy_encoder import NumpyJSONEncoder
+from src.utils.bounding_box import (
+    image_bbox_to_pdf,
+    transform_bbox_for_rotation,
+    correct_blocks_redundancy,
+    sort_blocks_by_position,
+)
+from src.utils.scanned import is_scanned_image, is_scanned_block
 
 class ContentClassifier:
     def __init__(self, config : MainConfig):

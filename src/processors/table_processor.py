@@ -134,15 +134,18 @@ class TableProcessor(BaseProcessor):
         matrix.extend(other_lines_corrected)
 
         ## Check if there are empty columns in the other lines
-        for i, cell in enumerate(other_lines_corrected[0]):
-            if cell is None:
-                ## Check if there is a non-empty cell in the other lines
-                for other_line in other_lines_corrected[1:]:
-                    if other_line[i]:
-                        break
-                else:
-                    for line in matrix:
-                        line.pop(i)
+        if other_lines_corrected:
+            ## Iterate in reverse order to keep the indexes valid when columns are removed
+            for i in reversed(range(len(other_lines_corrected[0]))):
+                if other_lines_corrected[0][i] is None:
+                    ## Check if there is a non-empty cell in the other lines
+                    for other_line in other_lines_corrected[1:]:
+                        if i < len(other_line) and other_line[i]:
+                            break
+                    else:
+                        for line in matrix:
+                            if i < len(line):
+                                line.pop(i)
 
         ## Cells propagation
         for i, row in enumerate(matrix):

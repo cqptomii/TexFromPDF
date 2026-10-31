@@ -8,10 +8,10 @@ from src.utils.bounding_box import identified_bbox_mask, overlaps, sort_blocks_b
 from src.utils.utils import normalize_text, is_empty
 
 class TextProcessor(BaseProcessor):
-    def __init__(self, output_dir : Path):
+    def __init__(self, output_dir : Path, device : str = "cpu"):
         super().__init__()
 
-        self._formula_detector = FormulaDetection()
+        self._formula_detector = FormulaDetection(device=device)
         self._formula_recognizer = FormulaRecognition()
         self._output_dir = output_dir
         self._use_bounding_box = False
@@ -65,13 +65,13 @@ class TextProcessor(BaseProcessor):
 
             text_extracted = page.get_textbox(rect=formula_rect_pdf)
             text_extracted = normalize_text(text_extracted)
-            if is_empty(text_extracted):
+            if not is_empty(text_extracted):
                 print(f"Textblock : {text_extracted}")
 
                 ## Check if the bbox in already in the list
                 insert: bool = True
                 for b in text_box:
-                    if overlaps(b, formula_rect_pdf):
+                    if overlaps(b["bbox_pdf"], formula_rect_pdf):
                         insert = False
                         break
 
@@ -109,7 +109,9 @@ class TextProcessor(BaseProcessor):
 
         bbox_list = []
         for formula_detection in formula_detected:
-            bbox_list.append(formula_detection["bbox"])
+            bbox = formula_detection.get("bbox", formula_detection.get("bbox_pdf", []))
+            if bbox:
+                bbox_list.append(bbox)
 
         ## If the class name is a header or footer page, use the pymupdf extraction function
         if not formula_detected or class_name.lower() in ["page-header", "page-footer"]:
@@ -141,7 +143,9 @@ class TextProcessor(BaseProcessor):
 
         print(f"Detected {len(formula_detected)} formula(s) in the text block")
         for formula in formula_detected:
-            bbox_img = formula["bbox"]
+            bbox_img = formula.get("bbox", formula.get("bbox_pdf", []))
+            if not bbox_img:
+                continue
 
             ## Recognize the formula in the given bbox
             img_formula = img.crop(bbox_img)
@@ -179,7 +183,7 @@ class TextProcessor(BaseProcessor):
             image=img,
             bbox_list=bbox_to_use,
             block_id=block["id"],
-            show=True,
+            show=False,
         )
 
         # Retourner le résultat selon le format attendu

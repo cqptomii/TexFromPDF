@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from typing import List
 from src.datamodel.layout_blocks.base_model import BaseModel
@@ -73,10 +74,10 @@ class TableModel(BaseModel):
         return html_table
     def _convert_table_to_json_blocks(self) -> str:
         """
-            Method that converts the table to a list of blocks in json format
+            Method that converts the table to a json string (list of rows, each row is a list of cells)
         :return: (str) Json representation of the table
         """
-        pass
+        return json.dumps(self.structured_content, ensure_ascii=False)
 
     def to_markdown(self, table_format: str = "html"):
         """

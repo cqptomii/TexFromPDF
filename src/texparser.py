@@ -1,5 +1,12 @@
 import argparse
-from content_extractor import ContentExtractor
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from src.content_extractor import ContentExtractor
 
 
 def texparser():
@@ -35,28 +42,29 @@ def texparser():
 
     args.add_argument(
         "--save_md",
-        type=bool,
+        action=argparse.BooleanOptionalAction,
         default=True,
-        help="Enable saving of the extracted content as markdown"
+        help="Enable saving of the extracted content as markdown (use --no-save_md to disable)"
     )
     args.add_argument(
         "--save_html",
-        type=bool,
+        action=argparse.BooleanOptionalAction,
         default=False,
-        help="Enable saving of the extracted content as html"
+        help="Enable saving of the extracted content as html (use --no-save_html to disable)"
     )
 
     args = args.parse_args()
 
 
     print(f"Output directory: {args.output_dir}")
-    pdf_files = args.pdf_dir.rglob("*.pdf")
+    pdf_dir = Path(args.pdf_dir)
+    pdf_files = list(pdf_dir.rglob("*.pdf"))
     document_amount = len(pdf_files)
 
-    for i, pdf_file in enumerate(pdf_files):
+    for i, pdf_file in enumerate(pdf_files, start=1):
         print(f"Processing document {i}/{document_amount} stored into : {pdf_file}")
         parser = ContentExtractor(
-            pdf_path=args.pdf_path,
+            pdf_path=pdf_file,
             output_dir=args.output_dir,
             device=args.device,
             verbose=args.verbose,

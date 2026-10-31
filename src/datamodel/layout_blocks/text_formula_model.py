@@ -8,7 +8,10 @@ class TextFormulaModel(BaseModel):
     structured_blocks : dict = field(default_factory=lambda: {})
 
     def to_html(self):
-        pass
+        if self.class_name.lower() in ["title"]:
+            return "<h2>" + self.content.replace("\n", " ") + "</h2>"
+
+        return self.content + "\n"
     def to_markdown(self):
         if self.class_name.lower() in ["title"]:
             self.content = self.content.replace("\n", " ")

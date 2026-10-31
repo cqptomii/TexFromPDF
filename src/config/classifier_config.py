@@ -15,4 +15,5 @@ class ClassifierConfig:
 
     @classmethod
     def from_yaml(cls, path: str):
-        return cls.from_dict(config=yaml.safe_load(open(path)))
+        with open(path, "r", encoding="utf-8") as f:
+            return cls.from_dict(config=yaml.safe_load(f))

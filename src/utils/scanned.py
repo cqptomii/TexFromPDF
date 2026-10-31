@@ -51,6 +51,8 @@ def is_scanned_block(page, bbox, class_name : str) -> bool:
     :param class_name: (str) Class name of the block
     :return: (bool) True if the block contains only scanned content, False otherwise
     """
+    class_name = class_name.lower()
+
     if class_name == "picture":
         return is_scanned_image(page)
     elif class_name == "scanned-image":

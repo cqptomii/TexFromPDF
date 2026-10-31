@@ -18,7 +18,9 @@ def normalize_text(text : str) -> str:
     else:
         return text
 def is_empty(text : str) -> bool:
-    if text.replace(" ", "") != "":
-        return True
-    else:
-        return False
+    """
+        Function that checks if a text is empty (contains only whitespaces)
+    :param text: (str) text to check
+    :return: (bool) True if the text is empty or contains only whitespaces, False otherwise
+    """
+    return text.strip() == ""

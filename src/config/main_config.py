@@ -1,6 +1,6 @@
 import yaml
 from dataclasses import dataclass, field
-from src.config import ClassifierConfig
+from src.config.classifier_config import ClassifierConfig
 
 @dataclass
 class MainConfig:
@@ -20,13 +20,13 @@ class MainConfig:
 
     @classmethod
     def from_dict(cls, config: dict):
-        if "classifier_config" in config:
+        config = dict(config)
+        if isinstance(config.get("classifier_config"), dict):
             config["classifier_config"] = ClassifierConfig.from_dict(config["classifier_config"])
         return cls(**config)
 
     @classmethod
     def from_yaml(cls, path: str):
-        config = yaml.safe_load(open(path))
-        if "classifier_config" in config:
-            config["classifier_config"] = ClassifierConfig.from_dict(config["classifier_config"])
+        with open(path, "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
         return cls.from_dict(config=config)
