@@ -1,2 +1,22 @@
-pandas
-bs4
+# Python >= 3.12 requis
+
+# PDF
+pymupdf>=1.24
+
+# Deep Learning
+# (pour le GPU, installer torch depuis https://pytorch.org/get-started/locally/)
+torch>=2.2
+ultralytics>=8.3
+transformers==4.57.6
+safetensors==0.7.0
+sentencepiece==0.2.1
+optimum[onnxruntime]>=1.20
+cnstd>=1.2.5
+
+# Images et calcul
+numpy>=1.26
+pillow>=10.0
+opencv-python>=4.9
+
+# Configuration
+pyyaml>=6.0

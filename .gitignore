@@ -1,0 +1,28 @@
+# Environnements
+.conda/
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Modèles (poids volumineux, à télécharger séparément : voir docs/installation.md)
+models/
+
+# Résultats générés
+output/
+
+# Données locales (décommenter pour exclure aussi les PDF d'exemple)
+# data/
+
+# Divers
+.DS_Store
+Thumbs.db
